@@ -433,6 +433,16 @@ def test_bad_facts_and_schema_files_fail_cleanly_and_warnings_reach_stderr(capsy
     assert json.loads(captured.out)["warnings"][0]["code"] == "unknown_entity_type"
 
 
+def test_whole_number_result_fields_print_as_integers_like_typescript(capsys, tmp_path):
+    assert kuzu_main(tmp_path, "entity", "create", "--name", "Ann", "--type", "Person") == 0
+    assert kuzu_main(tmp_path, "entity", "create", "--name", "Acme", "--type", "Company") == 0
+    capsys.readouterr()
+    assert kuzu_main(tmp_path, "preference", "create", "person:ann", "likes", "company:acme", "--strength", "1") == 0
+    assert '"strength": 1,' in capsys.readouterr().out
+    assert kuzu_main(tmp_path, "maintenance", "decay", "--half-life-days", "7") == 0
+    assert '"half_life_days": 7,' in capsys.readouterr().out
+
+
 def test_null_facts_file_fails_cleanly(capsys, tmp_path):
     null = json_file(tmp_path, "null.json", None)
     assert kuzu_main(tmp_path, "insert", "facts", null) == 2
