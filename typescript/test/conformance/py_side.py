@@ -49,6 +49,7 @@ from selfgraph.runtime import (
     _falkor_credentials,
     _llm_concurrency,
     _llm_timeout,
+    dumps,
     parse_json,
     to_jsonable,
 )
@@ -1198,6 +1199,22 @@ MCP_ARGUMENT_CASES = [
 ]
 
 
+async def whole_float_json(graph):
+    """Print whole-number result fields the way the CLI and MCP do: a preference strength, a merge confidence, a decay.
+
+    @param graph (SelfGraph): the conformance graph, whose store holds a separate namespace for this case.
+    @return (str): the JSON text.
+    """
+    g = SelfGraph(store=graph.store, namespace=f"{graph.namespace}_whole_floats", resolver="default")
+    await g.insert.facts({"entities": [{"type": "Person", "name": "Ann", "external_ids": {"crm": "7"}}]})
+    await g.insert.facts({"entities": [{"type": "Person", "name": "Annie", "external_ids": {"crm": "7"}}]})
+    await g.entities.create("Acme", "Company")
+    pref = await g.preferences.create("person:ann", "likes", "company:acme", strength=1)
+    merge = (await g.entities.merges("person:ann")).items[0]
+    decay = await g.maintenance.decay(half_life_days=7, now=datetime(2026, 1, 1, tzinfo=timezone.utc))
+    return dumps({"strength": pref.strength, "confidence": merge.confidence, "half_life_days": decay.half_life_days})
+
+
 async def mcp_argument_errors():
     """Check MCP tool arguments that both servers must reject, with the pydantic rules the Python server applies.
 
@@ -1770,6 +1787,7 @@ async def write(graph):
     except ValidationError as exc:
         out["facts_none"] = str(exc)
     out["mcp_arguments"] = await mcp_argument_errors()
+    out["whole_float_json"] = await whole_float_json(graph)
     out["flag_errors"] = []
     for flag in ("false", 0):
         for call in (

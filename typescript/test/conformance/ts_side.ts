@@ -38,6 +38,7 @@ import {
   parseOrThrow,
   RelationInput,
 } from "../../src/models.js";
+import { dumps } from "../../src/output.js";
 import { tokens } from "../../src/retrieval.js";
 import {
   buildLlm,
@@ -1677,6 +1678,23 @@ export async function kuzuReadOnly(): Promise<object> {
 }
 
 /**
+ * Print whole-number result fields the way the CLI and MCP do: a preference strength, a merge confidence, a decay.
+ *
+ * @param graph (SelfGraph): the conformance graph, whose store holds a separate namespace for this case.
+ * @return (Promise<string>): the JSON text.
+ */
+async function wholeFloatJson(graph: SelfGraph): Promise<string> {
+  const g = new SelfGraph(graph.store, { namespace: `${graph.namespace}_whole_floats`, resolver: "default" });
+  await g.insert.facts({ entities: [{ type: "Person", name: "Ann", external_ids: { crm: "7" } }] });
+  await g.insert.facts({ entities: [{ type: "Person", name: "Annie", external_ids: { crm: "7" } }] });
+  await g.entities.create("Acme", "Company");
+  const pref = await g.preferences.create("person:ann", "likes", "company:acme", { strength: 1 });
+  const merge = (await g.entities.merges("person:ann")).items[0]!;
+  const decay = await g.maintenance.decay({ half_life_days: 7, now: new Date(Date.UTC(2026, 0, 1)) });
+  return dumps({ strength: pref.strength, confidence: merge.confidence, half_life_days: decay.half_life_days });
+}
+
+/**
  * Call MCP tools with text, boolean, and null arguments the servers must reject before running the tool.
  *
  * @return (Promise<object[]>): the error text, code, and field each call reports, or "accepted".
@@ -2132,6 +2150,7 @@ export async function write(graph: SelfGraph): Promise<Record<string, unknown>> 
     out.facts_none = exc.message;
   }
   out.mcp_arguments = await mcpArgumentErrors();
+  out.whole_float_json = await wholeFloatJson(graph);
   const flagErrors: string[] = [];
   for (const flag of ["false", 0]) {
     for (const call of [
