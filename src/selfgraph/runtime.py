@@ -739,13 +739,15 @@ async def current_relation(graph: SelfGraph, rid: str, hint: str) -> Relation | 
 
 
 def to_jsonable(obj: Any) -> Any:
-    """Turn an SDK return value (model, page, list, counts) into JSON-ready data.
+    """Turn an SDK return value into JSON-ready data, printing a whole float as the TypeScript port does.
 
     @param obj (Any): the SDK return value to convert.
     @return (Any): JSON-ready data.
     """
     if isinstance(obj, float) and not math.isfinite(obj):
         return None
+    if isinstance(obj, float) and obj.is_integer() and abs(obj) <= MAX_SAFE_INTEGER and str(obj) != "-0.0":
+        return int(obj)
     if obj is None or isinstance(obj, str | int | float | bool):
         return obj
     if isinstance(obj, BaseModel):
