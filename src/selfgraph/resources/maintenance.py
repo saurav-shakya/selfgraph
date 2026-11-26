@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import partial
 from typing import Any
 
@@ -60,7 +60,7 @@ class Maintenance(Resource):
         _m.require_number("half_life_days", half_life_days, positive=True)
         now = _ops.parse_time(now, "now")
         _ops._require_bool("dry_run", dry_run)
-        at = aware(now) if now is not None else _now()
+        at = aware(now).astimezone(timezone.utc) if now is not None else _now()
         _require_not_future("now", at, "decay scores items as of")
         ns = self._c.namespace
         reader = await self._c._reader()

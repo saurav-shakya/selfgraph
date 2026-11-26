@@ -4,7 +4,7 @@ import asyncio
 import logging
 import random
 from collections.abc import Awaitable, Callable, Mapping
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import partial
 from typing import Any
 
@@ -473,8 +473,8 @@ class SelfGraph:
         end = _ops.parse_time(until, "until")
         if start is None:
             raise ValidationError("since is required")
-        start = aware(start)
-        end = now() if end is None else aware(end)
+        start = aware(start).astimezone(timezone.utc)
+        end = now() if end is None else aware(end).astimezone(timezone.utc)
         if end < start:
             raise ValidationError("until must be at or after since")
         return await graph_diff(await self._reader(), self.namespace, start, end)
