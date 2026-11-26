@@ -2132,6 +2132,10 @@ export async function write(graph: SelfGraph): Promise<Record<string, unknown>> 
     out.facts_none = exc.message;
   }
   out.mcp_arguments = await mcpArgumentErrors();
+  const utcWindow = await graph.diff("2026-01-01T02:00:00+02:00", "2026-01-02T02:00:00+02:00");
+  const utcDecay = await graph.maintenance.decay({ now: "2026-01-01T02:00:00+02:00" });
+  const echoed = [toJsonable(utcWindow), toJsonable(utcDecay)] as Array<Record<string, unknown>>;
+  out.utc_echo = [echoed[0]!.since, echoed[0]!.until, echoed[1]!.now];
   const flagErrors: string[] = [];
   for (const flag of ["false", 0]) {
     for (const call of [

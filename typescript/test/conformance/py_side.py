@@ -1770,6 +1770,9 @@ async def write(graph):
     except ValidationError as exc:
         out["facts_none"] = str(exc)
     out["mcp_arguments"] = await mcp_argument_errors()
+    utc_window = await graph.diff("2026-01-01T02:00:00+02:00", "2026-01-02T02:00:00+02:00")
+    utc_decay = await graph.maintenance.decay(now="2026-01-01T02:00:00+02:00")
+    out["utc_echo"] = [to_jsonable(utc_window)[k] for k in ("since", "until")] + [to_jsonable(utc_decay)["now"]]
     out["flag_errors"] = []
     for flag in ("false", 0):
         for call in (
