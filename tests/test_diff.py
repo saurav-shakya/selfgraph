@@ -27,6 +27,18 @@ def test_diff_tracks_insert_revision_and_supersede_by_known_time():
     assert {r.id for r in run(g.relations.list(include_invalidated=True)).items} == {acme.id, globex.id}
 
 
+def test_diff_and_decay_echo_their_times_in_utc():
+    g = fresh_graph("diff_utc")
+    run(g.entities.create("Ann", "Person"))
+    window = run(g.diff("2026-01-01T02:00:00+02:00", "2026-01-02T02:00:00+02:00"))
+    assert (window.since.isoformat(), window.until.isoformat()) == (
+        "2026-01-01T00:00:00+00:00",
+        "2026-01-02T00:00:00+00:00",
+    )
+    decay = run(g.maintenance.decay(now="2026-01-01T02:00:00+02:00"))
+    assert decay.now.isoformat() == "2026-01-01T00:00:00+00:00"
+
+
 def test_diff_entities_empty_window_validation_and_namespace():
     g = fresh_graph("diff")
     start = instant()
